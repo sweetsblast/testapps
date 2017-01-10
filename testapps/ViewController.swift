@@ -48,6 +48,8 @@ class ViewController: UIViewController {
             // エラー発生
             print("エラー");
         }
+        
+        /* ここにRXコードを追加予定 */
     }
 
     // ルートViewがView階層に追加される直前、表示アニメーションが設定されるより前に呼ばれる
