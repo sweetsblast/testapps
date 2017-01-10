@@ -40,6 +40,9 @@ class ViewController: UIViewController {
         var contents : [String]? = nil
         do {
             contents = try FileManager.default.contentsOfDirectory( atPath: documentsPath)
+            for filename in contents! {
+                print(filename)
+            }
         }catch{
             // エラー発生
             print("エラー");
