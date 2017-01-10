@@ -34,6 +34,7 @@ class ViewController: UIViewController {
         print("*VC* " + #function)
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        /* PDFビュアー向け start */
         // ドキュメントパス
         let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] as String
 
@@ -48,6 +49,7 @@ class ViewController: UIViewController {
             // エラー発生
             print("エラー");
         }
+        /* PDFビュアー向け end */
     }
 
     // ルートViewがView階層に追加される直前、表示アニメーションが設定されるより前に呼ばれる
