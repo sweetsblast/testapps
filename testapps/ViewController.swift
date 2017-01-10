@@ -8,6 +8,9 @@
 
 import UIKit
 
+import RxSwift  // 追加
+import RxCocoa  // 追加
+
 class MyReceiver {
     public static let notificationName = "TESTNOTIFICATION"
     @objc func testFunction(_ notification : NSNotification){
@@ -18,11 +21,17 @@ class MyReceiver {
 class ViewController: UIViewController {
 
     let receiver = MyReceiver()
+    private let disposeBag = DisposeBag()
     
     @IBOutlet weak var label1: UILabel!
     
     @IBOutlet weak var btn1: UIButton!
 
+    @IBOutlet weak var btn2: UIButton!
+    @IBOutlet weak var btn3: UIButton!
+    @IBOutlet weak var label2: UILabel!
+    @IBOutlet weak var label3: UILabel!
+    
     // ルートViewを作成する
     override func loadView() {
         print("*VC* " + #function)
@@ -44,6 +53,13 @@ class ViewController: UIViewController {
             // エラー発生
             print("エラー");
         }
+        
+        btn2.rx.tap
+            .subscribe(onNext: { [weak self] x in
+                self?.debug("UIButton Tapped")
+            })
+//            .bindTo(label2.rx.text)
+            .addDisposableTo(disposeBag)
     }
 
     // ルートViewがView階層に追加される直前、表示アニメーションが設定されるより前に呼ばれる
@@ -112,6 +128,10 @@ class ViewController: UIViewController {
 
     func testFunction(){
         
+    }
+    
+    func debug(_ string: String) {
+        print(string)
     }
 }
 

@@ -5,8 +5,8 @@ target 'testapps' do
     pod 'RxCocoa',	'~> 3.0'
 end
 
-target 'testappsTests' do
-    pod 'RxBlocking',	'~> 3.0'
-    pod 'RxTest',	'~> 3.0'
-end
+##target 'testappsTests' do
+##    pod 'RxBlocking',	'~> 3.0'
+##    pod 'RxTest',	'~> 3.0'
+##end
 
