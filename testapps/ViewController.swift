@@ -40,6 +40,7 @@ class ViewController: UIViewController {
         var contents : [String]? = nil
         do {
             contents = try FileManager.default.contentsOfDirectory( atPath: documentsPath)
+            print("contents サイズ=" + String(contents?.count ?? 0))
             for filename in contents! {
                 print(filename)
             }
