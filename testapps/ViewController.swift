@@ -7,6 +7,9 @@
 //
 
 import UIKit
+import Alamofire
+import SwiftyJSON
+import RxSwift
 
 class MyReceiver {
     public static let notificationName = "TESTNOTIFICATION"
@@ -112,10 +115,66 @@ class ViewController: UIViewController {
         print("*VC* " + #function)
         label1.text = "押されたよII"
         NotificationCenter.default.post(name: NSNotification.Name(rawValue: MyReceiver.notificationName), object: nil)
+        
+        getArticles()
+        
+        testFunction()
     }
 
     func testFunction(){
-        
+        _ = MyClass().extcute(0).subscribe(
+            onNext:{value in
+                print("myClass - onNext")
+            },
+            onError:{error in
+                print("myClass - onError")
+            },
+            onCompleted:{
+                print("myClass - onCompleted")
+            }
+        )
+    }
+    
+    func getArticles() {
+        Alamofire.request("https://qiita.com/api/v2/items").responseJSON{ response in
+            guard response.result.value != nil else {
+                print(" object nil")
+                return
+            }
+            
+            let json = JSON(response.result.value ?? "")
+            print(json)
+        }
+    }
+}
+
+class MyClass {
+    func extcute(_ aaa:Int) -> Observable<Int> {
+        return Observable<Int>.create { observer in
+            observer.onNext(aaa)
+            observer.onCompleted()
+            return Disposables.create {
+                print("cancel")
+            }
+        }
+    }
+    
+    var value : Observable<Bool> {
+        return Observable<Bool>.create { observer in
+            let value : Int = 0
+            switch value {
+            case 0...3:
+                observer.onNext(true)
+                observer.onCompleted()
+            case 4:
+                observer.onError(NSError())
+            default:
+                observer.onError(NSError())
+            }
+            return Disposables.create {
+                print("cancel")
+            }
+        }
     }
 }
 
