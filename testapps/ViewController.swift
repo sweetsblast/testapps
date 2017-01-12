@@ -11,11 +11,11 @@ import UIKit
 class MyReceiver {
     public static let notificationName = "TESTNOTIFICATION"
     @objc func testFunction(_ notification : NSNotification){
-        NSLog("*NOTIFICATION* exe testFunction notification:%@", notification)
+//        NSLog("*NOTIFICATION* exe testFunction notification:%@", notification)
     }
 }
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate{
 
     let receiver = MyReceiver()
     
@@ -23,6 +23,8 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var btn1: UIButton!
 
+    @IBOutlet weak var controlView: UICollectionView!
+    
     // ルートViewを作成する
     override func loadView() {
         print("*VC* " + #function)
@@ -49,6 +51,8 @@ class ViewController: UIViewController {
             // エラー発生
             print("エラー");
         }
+        let files = getDocumentFiles()
+        print("filesサイズ=" + String(files.count))
         /* PDFビュアー向け end */
     }
 
@@ -115,7 +119,73 @@ class ViewController: UIViewController {
         label1.text = "押されたよII"
         NotificationCenter.default.post(name: NSNotification.Name(rawValue: MyReceiver.notificationName), object: nil)
     }
+    
+    // UICollectionViewDataSource
+    func numberOfSections(in collectionView: UICollectionView) -> Int {
+        return 4
+    }
 
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        var number : Int = 0
+        switch section {
+        case 0:
+            number = 4
+        case 1:
+            number = 3
+        case 2:
+            number = 2
+        case 3:
+            number = 1
+        default:
+            number = 0
+        }
+        
+        return number
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        var cell : UICollectionViewCell
+        if(indexPath.row%2==0){
+            cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell1", for: indexPath)
+            cell.backgroundColor = UIColor.yellow
+            let label = cell.viewWithTag(1) as? UILabel
+            label?.text = "A" + String(indexPath.row)
+        }else{
+            cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell2", for: indexPath)
+            cell.backgroundColor = UIColor.blue
+            let label = cell.viewWithTag(1) as? UILabel
+            label?.text = "B" + String(indexPath.row)
+        }
+        
+        return cell
+    }
+
+    // UICollectionViewDelegate
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        NSLog( "row = %d, section = %d", indexPath.row, indexPath.section)
+    }
+
+    
+    // Original Method
+
+    func getDocumentFiles() -> [String] {
+        let documentPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+        var fileNames: [String]
+        
+        do {
+            fileNames = try FileManager.default.contentsOfDirectory(atPath: documentPath)
+        } catch {
+            fileNames = []
+        }
+        
+        return fileNames.map{ documentPath + "/" + $0 }
+        /*
+                texts = try String(contentsOfFile: documentPath + "/" + fileName, encoding: String.Encoding(rawValue: String.Encoding.utf8.rawValue)).lines
+                texts = texts.deleteSpaceOnly(texts: texts)
+                return texts
+ */
+    }
+    
     func testFunction(){
         
     }
