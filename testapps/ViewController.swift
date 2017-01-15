@@ -382,3 +382,4 @@ class MyClassII {
 }
 
 // testブランチで追加
+// testブランチで追加2
