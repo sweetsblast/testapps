@@ -11,6 +11,40 @@ import Alamofire
 import SwiftyJSON
 import RxSwift
 
+struct Sweetsblast<Base> {
+    let base: Base
+    init (_ base: Base) {
+        self.base = base
+    }
+}
+
+protocol SweetsblastCompatible {
+    associatedtype Compatible
+    static var sb: Sweetsblast<Compatible>.Type { get }
+    var sb: Sweetsblast<Compatible> { get }
+}
+
+extension SweetsblastCompatible {
+    static var sb: Sweetsblast<Self>.Type {
+        return Sweetsblast<Self>.self
+    }
+    var sb: Sweetsblast<Self> {
+        return Sweetsblast(self)
+    }
+}
+
+extension UIColor: SweetsblastCompatible {}
+
+extension Sweetsblast where Base: UIColor {
+    static var sweetsblast: UIColor {
+        return UIColor(red: 0.97, green: 0.71, blue: 0.00, alpha: 1.00)
+    }
+}
+
+// ↓ みたいに書ける
+// label?.rx.base.textColor = UIColor.sb.sweetsblast
+
+
 class MyReceiver {
     public static let notificationName = "TESTNOTIFICATION"
     @objc func testFunction(_ notification : NSNotification){
@@ -124,7 +158,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         label1.text = "押されたよII"
         NotificationCenter.default.post(name: NSNotification.Name(rawValue: MyReceiver.notificationName), object: nil)
         
-        getArticles()
+        getHoroI()
         
         testFunction()
     }
@@ -163,7 +197,9 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
             cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell2", for: indexPath)
             cell.backgroundColor = UIColor.blue
             let label = cell.viewWithTag(1) as? UILabel
-            label?.text = "B" + String(indexPath.row)
+            // label?.text = "B" + String(indexPath.row)
+            label?.rx.base.text = "B" + String(indexPath.row)
+            label?.rx.base.textColor = UIColor.sb.sweetsblast
         }
         
         return cell
@@ -209,20 +245,63 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         )
     }
     
-    func getArticles() {
-        Alamofire.request("https://qiita.com/api/v2/items").responseJSON{ response in
-            guard response.result.value != nil else {
-                print(" object nil")
-                return
+    func getHoroI() {
+        
+        _ = MyClass().request(dateString:"2017/01/16")
+        .subscribe(
+            onNext:{ json in
+                print(#function + "onNext:" + json.debugDescription)
+                self.getHoroII()
+            },
+            onError:{ error in
+                print(#function + "onError: " + error.localizedDescription)
+            },
+            onCompleted:{
+                print(#function + "onCompleted")
             }
-            
-            let json = JSON(response.result.value ?? "")
-            print(json)
-        }
+        )
+    }
+    
+    func getHoroII(){
+        _ = MyClass().request(dateString:"2017/01/17")
+            .subscribe(
+                onNext:{ json in
+                    print(#function + "onNext:" + json.debugDescription)
+            },
+                onError:{ error in
+                    print(#function + "onError: " + error.localizedDescription)
+            },
+                onCompleted:{
+                    print(#function + "onCompleted")
+            }
+        )
     }
 }
 
 class MyClass {
+    func request(dateString: String) -> Observable<JSON> {
+        return Observable<JSON>.create { observer in
+            Alamofire.request("http://api.jugemkey.jp/api/horoscope/free/" + dateString).responseJSON{ response in
+                let json = JSON(response.result.value ?? "")
+                print("REQUEST: \(response.request)")
+                print("RESPONSE: \(response.response)")
+                print("STATUS CODE: \(response.response?.statusCode)")
+                print("HEADERS: \(response.response?.allHeaderFields)")
+                print("RESULT: \(response.result)")
+                print("JSON: \(json)")
+                print("Error: " + response.result.error.debugDescription)
+                let ddd = json["horoscope"]["2017/01/16"]
+                print("[horoscope][2017/02/16]:  \(ddd)")
+                observer.onNext(json)
+                observer.onCompleted()
+            }
+            
+            return Disposables.create {
+                print("cancel")
+            }
+        }
+    }
+    
     func extcute(_ aaa:Int) -> Observable<Int> {
         return Observable<Int>.create { observer in
             observer.onNext(aaa)
@@ -249,6 +328,56 @@ class MyClass {
                 print("cancel")
             }
         }
+    }
+
+    private let eventSubject = PublishSubject<Int>()    // Observableでありつつ、ObserverのIF（onNext,onError,onCompleted）を持つ
+    // BehaviorSubject は 最後の値を覚えていて、subscribeすると即座にそれを最初に通知する。生成時に初期値を設定できる
+    // Variable は BehaviorSubjectのラッパーでonErrorを発生させる必要がない場合に使用する。ただし、Observalbeではないため、asObservableメソッドで変換する
+    //   private let aaa = Variable(false)
+    //   var bbb: Observable<Bool> { return aaa.asObservable() }
+    //   func start() { aaa.value = true }  // Valiableのvalueに値を入れるとイベントが発行される
+    //   func stop() { aaa.value = false }
+    
+    var event: Observable<Int> { return eventSubject }  // Subjectを公開するとonNextなども外部から使えてしまうので、Observableで公開する
+    
+    func doSomething() {
+        // 処理
+        eventSubject.onNext(1)  // イベント発行
+    }
+    
+    /*
+    private let
+    // Int型の変数
+    var event: Observable<Int> {
+        
+    }
+    // 使い方
+    let disposable = MyClass.event.subscribe(
+        onNext: { value in
+            // 通常イベント発生時の処理
+        },
+        onError: { error in
+            // エラー発生時の処理
+        },
+        onCompleted: {
+            // 完了時の処理
+        }
+     )
+     disposable.dispose()   // 購読解除
+     */
+    
+    // extension ObservableType { func AAA<R>( arg: @escaping (E) -> R ) -> Observable<R> { return Observable.create{ observable in ... return subscription } } } 的に書くとカスタムoperatorsが作れる
+    
+}
+
+class MyClassII {
+    let stream = PublishSubject<Int>()
+    var response: Observable<Int> {
+        return stream
+    }
+    
+    func execute(){
+        
     }
 }
 
