@@ -56,6 +56,8 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
 
     let receiver = MyReceiver()
     
+    var disposable :Disposable? = nil
+    
     @IBOutlet weak var label1: UILabel!
     
     @IBOutlet weak var btn1: UIButton!
@@ -157,8 +159,13 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         print("*VC* " + #function)
         label1.text = "押されたよII"
         NotificationCenter.default.post(name: NSNotification.Name(rawValue: MyReceiver.notificationName), object: nil)
-        
-        getHoroI()
+
+        if let _ = self.disposable {
+            self.disposable?.dispose()
+            self.disposable = nil
+        }else{
+            getHoroI()
+        }
         
         testFunction()
     }
@@ -247,14 +254,16 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
     
     func getHoroI() {
         
-        _ = MyClass().request(dateString:"2017/01/16")
+        disposable = MyClass().request(dateString:"2017/01/17")
         .subscribe(
             onNext:{ json in
                 print(#function + "onNext:" + json.debugDescription)
+                self.disposable = nil
                 self.getHoroII()
             },
             onError:{ error in
                 print(#function + "onError: " + error.localizedDescription)
+                self.disposable = nil
             },
             onCompleted:{
                 print(#function + "onCompleted")
@@ -263,13 +272,15 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
     }
     
     func getHoroII(){
-        _ = MyClass().request(dateString:"2017/01/17")
+        disposable = MyClass().request(dateString:"2017/01/18")
             .subscribe(
                 onNext:{ json in
                     print(#function + "onNext:" + json.debugDescription)
+                    self.disposable = nil
             },
                 onError:{ error in
                     print(#function + "onError: " + error.localizedDescription)
+                    self.disposable = nil
             },
                 onCompleted:{
                     print(#function + "onCompleted")
@@ -279,9 +290,13 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
 }
 
 class MyClass {
+    
+    private var request : Alamofire.DataRequest? = nil
+    
     func request(dateString: String) -> Observable<JSON> {
         return Observable<JSON>.create { observer in
-            Alamofire.request("http://api.jugemkey.jp/api/horoscope/free/" + dateString).responseJSON{ response in
+            self.request = Alamofire.request("http://api.jugemkey.jp/api/horoscope/free/" + dateString)
+            self.request?.responseJSON{ response in
                 let json = JSON(response.result.value ?? "")
                 print("REQUEST: \(response.request)")
                 print("RESPONSE: \(response.response)")
@@ -290,14 +305,15 @@ class MyClass {
                 print("RESULT: \(response.result)")
                 print("JSON: \(json)")
                 print("Error: " + response.result.error.debugDescription)
-                let ddd = json["horoscope"]["2017/01/16"]
-                print("[horoscope][2017/02/16]:  \(ddd)")
-                observer.onNext(json)
+                let ddd = json["horoscope"][dateString]
+//                print("[horoscope][\(dateString)]:  \(ddd)")
+                observer.onNext(ddd)
                 observer.onCompleted()
             }
             
             return Disposables.create {
                 print("cancel")
+                self.request?.cancel()
             }
         }
     }
