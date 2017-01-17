@@ -476,6 +476,8 @@ class MyClassII {
     }
 }
 
+// testブランチで追加
+// testブランチで追加2
 // developで追加
 
 /* // ボタン２押下のログ
