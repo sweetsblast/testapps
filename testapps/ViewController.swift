@@ -58,6 +58,8 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
     
     var disposable :Disposable? = nil
     
+    var disposableII : Disposable? = nil
+    
     @IBOutlet weak var label1: UILabel!
     
     @IBOutlet weak var btn1: UIButton!
@@ -159,7 +161,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         print("*VC* " + #function)
         label1.text = "押されたよII"
         NotificationCenter.default.post(name: NSNotification.Name(rawValue: MyReceiver.notificationName), object: nil)
-
+/*
         if let _ = self.disposable {
             self.disposable?.dispose()
             self.disposable = nil
@@ -167,7 +169,32 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
             getHoroI()
         }
         
-        testFunction()
+        let disposable = testFunction().subscribe{
+            print("testFunction : \($0)")
+        }
+*/
+        self.disposableII = testFunctionII()
+            .do(onNext: { (bool) in
+                print("pBII doOnNext")
+            }, onError: { (error) in
+                print("pBII doOnError")
+            }, onCompleted: { 
+                print("pBII doOnCompleted")
+            }, onSubscribe: { 
+                print("pBII doOnSubscribe")
+            }, onDispose: { 
+                print("pBII doOnDispose")
+            })
+            .subscribe(
+                onNext: { (bool) in
+                    print("pBII onNext : " + bool.description)
+            }, onError: { (error) in
+                print("pBII onError : " + error.localizedDescription)
+            }, onCompleted: {
+                print("pBII onCompleted")
+            }, onDisposed: {
+                print("pBII onDisposed")
+            })
     }
     
     // UICollectionViewDataSource
@@ -238,24 +265,49 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
  */
     }
     
-    func testFunction(){
-        _ = MyClass().extcute(0).subscribe(
-            onNext:{value in
-                print("myClass - onNext")
-            },
-            onError:{error in
-                print("myClass - onError")
-            },
-            onCompleted:{
-                print("myClass - onCompleted")
-            }
-        )
+    func testFunction() -> Observable<Bool> {
+        print(#function)
+        
+        return MyClass().request(dateString: "2016/12/31").flatMap({ (json) -> Observable<Bool> in
+            return Observable<Bool>.just(true)
+        })
+    }
+    
+    func testFunctionII() -> Observable<Bool> {
+        print(#function)
+        
+        return MyClass().generate()
+        .catchErrorJustReturn("AAA")
+        .flatMap({ (string) -> Observable<JSON> in
+            print("tFII flapMap")
+            return MyClass().request(dateString: string)
+        }).do(onNext: { (json) in
+            print("tFII do.onNext")
+        }, onError: { (error) in
+            print("tFII do.onError : " + error.localizedDescription)
+        }, onCompleted: {
+            print("tFII do.onCompleted")
+        }, onSubscribe: { 
+            print("tFII do.onSubscribe")
+        }, onDispose: { 
+            print("tFII do.onDisponse")
+        }).catchError({ (error) -> Observable<JSON> in
+            print("tFII catchError : " + error.localizedDescription)
+            return Observable.just(JSON(NSData()))
+        }).flatMap({ (json) -> Observable<Bool> in
+            print("tFII flatMap2")
+            return Observable<Bool>.just(true)
+        })
     }
     
     func getHoroI() {
         
         disposable = MyClass().request(dateString:"2017/01/17")
-        .subscribe(
+            .catchErrorJustReturn(JSON(Data()))
+            .flatMap{ json -> Observable<JSON> in
+                return MyClass().request(dateString:"2017/01/18")
+            }
+            .subscribe(
             onNext:{ json in
                 print(#function + "onNext:" + json.debugDescription)
                 self.disposable = nil
@@ -293,7 +345,28 @@ class MyClass {
     
     private var request : Alamofire.DataRequest? = nil
     
+    func generate() -> Observable<String> {
+        print("generate")
+        return Observable<String>.create{ observer in
+            print("observer.onNext(2017/01/15)")
+            observer.onNext("2017/01/15")
+            print("observer.onNext(2017/01/16)")
+            observer.onNext("2017/01/16")
+            print("observer.onNext(2017/01/17)")
+            observer.onNext("2017/01/17")
+            print("observer.onError")
+            observer.onError(NSError(domain:"MY CUSTOM ERROR",code:111))
+            print("observer.onNext(2017/01/18)")
+            observer.onNext("2017/01/18")
+//            observer.onCompleted()
+            return Disposables.create{
+                print("Disposables cancel")
+            }
+        }
+    }
+    
     func request(dateString: String) -> Observable<JSON> {
+        print("request : " + dateString)
         return Observable<JSON>.create { observer in
             self.request = Alamofire.request("http://api.jugemkey.jp/api/horoscope/free/" + dateString)
             self.request?.responseJSON{ response in
@@ -303,16 +376,22 @@ class MyClass {
                 print("STATUS CODE: \(response.response?.statusCode)")
                 print("HEADERS: \(response.response?.allHeaderFields)")
                 print("RESULT: \(response.result)")
-                print("JSON: \(json)")
+                print("JSON: \(json.arrayValue)")
                 print("Error: " + response.result.error.debugDescription)
                 let ddd = json["horoscope"][dateString]
-//                print("[horoscope][\(dateString)]:  \(ddd)")
-                observer.onNext(ddd)
-                observer.onCompleted()
+                if ( (response.response?.statusCode ?? 999) != 200 ){
+                    print("requeset sentError")
+                    observer.onError(NSError(domain: "Request Status Error", code: response.response?.statusCode ?? 999, userInfo: nil))
+                }else{
+                    print("request sendOnNext")
+                    observer.onNext(ddd)
+//                    print("request sendOnCompleted")
+//                    observer.onCompleted()
+                }
             }
             
             return Disposables.create {
-                print("cancel")
+                print("request cancel")
                 self.request?.cancel()
             }
         }
@@ -398,3 +477,107 @@ class MyClassII {
 }
 
 // developで追加
+
+/* // ボタン２押下のログ
+ *VC* pushButtonII
+ testFunctionII()
+ generate
+ pBII doOnSubscribe
+ tFII do.onSubscribe
+ observer.onNext(2017/01/15)
+ tFII flapMap
+ request : 2017/01/15
+ observer.onNext(2017/01/16)
+ tFII flapMap
+ request : 2017/01/16
+ observer.onNext(2017/01/17)
+ tFII flapMap
+ request : 2017/01/17
+ observer.onError
+ tFII flapMap
+ request : AAA
+ observer.onNext(2017/01/18)
+ Disposables cancel
+ REQUEST: Optional(http://api.jugemkey.jp/api/horoscope/free/2017/01/16)
+ RESPONSE: Optional(<NSHTTPURLResponse: 0x6000004282a0> { URL: http://api.jugemkey.jp/api/horoscope/free/2017/01/16 } { status code: 200, headers {
+ Connection = "keep-alive";
+ "Content-Length" = 3642;
+ "Content-Type" = "application/json; charset=utf-8";
+ Date = "Tue, 17 Jan 2017 21:22:38 GMT";
+ Server = "nginx/1.11.1";
+ } })
+ STATUS CODE: Optional(200)
+ HEADERS: Optional([AnyHashable("Content-Type"): application/json; charset=utf-8, AnyHashable("Content-Length"): 3642, AnyHashable("Connection"): keep-alive, AnyHashable("Date"): Tue, 17 Jan 2017 21:22:38 GMT, AnyHashable("Server"): nginx/1.11.1])
+ RESULT: SUCCESS
+ JSON: []
+ Error: nil
+ request sendOnNext
+ tFII do.onNext
+ tFII flatMap2
+ pBII doOnNext
+ pBII onNext : true
+ REQUEST: Optional(http://api.jugemkey.jp/api/horoscope/free/2017/01/15)
+ RESPONSE: Optional(<NSHTTPURLResponse: 0x608000225120> { URL: http://api.jugemkey.jp/api/horoscope/free/2017/01/15 } { status code: 200, headers {
+ Connection = "keep-alive";
+ "Content-Length" = 3720;
+ "Content-Type" = "application/json; charset=utf-8";
+ Date = "Tue, 17 Jan 2017 21:22:38 GMT";
+ Server = "nginx/1.11.1";
+ } })
+ STATUS CODE: Optional(200)
+ HEADERS: Optional([AnyHashable("Content-Type"): application/json; charset=utf-8, AnyHashable("Content-Length"): 3720, AnyHashable("Connection"): keep-alive, AnyHashable("Date"): Tue, 17 Jan 2017 21:22:38 GMT, AnyHashable("Server"): nginx/1.11.1])
+ RESULT: SUCCESS
+ JSON: []
+ Error: nil
+ request sendOnNext
+ tFII do.onNext
+ tFII flatMap2
+ pBII doOnNext
+ pBII onNext : true
+ REQUEST: Optional(http://api.jugemkey.jp/api/horoscope/free/2017/01/17)
+ RESPONSE: Optional(<NSHTTPURLResponse: 0x6080002250c0> { URL: http://api.jugemkey.jp/api/horoscope/free/2017/01/17 } { status code: 200, headers {
+ Connection = "keep-alive";
+ "Content-Length" = 3690;
+ "Content-Type" = "application/json; charset=utf-8";
+ Date = "Tue, 17 Jan 2017 21:22:38 GMT";
+ Server = "nginx/1.11.1";
+ } })
+ STATUS CODE: Optional(200)
+ HEADERS: Optional([AnyHashable("Content-Type"): application/json; charset=utf-8, AnyHashable("Content-Length"): 3690, AnyHashable("Connection"): keep-alive, AnyHashable("Date"): Tue, 17 Jan 2017 21:22:38 GMT, AnyHashable("Server"): nginx/1.11.1])
+ RESULT: SUCCESS
+ JSON: []
+ Error: nil
+ request sendOnNext
+ tFII do.onNext
+ tFII flatMap2
+ pBII doOnNext
+ pBII onNext : true
+ REQUEST: Optional(http://api.jugemkey.jp/api/horoscope/free/AAA)
+ RESPONSE: Optional(<NSHTTPURLResponse: 0x608000224de0> { URL: http://api.jugemkey.jp/api/horoscope/free/AAA } { status code: 404, headers {
+ Connection = "keep-alive";
+ "Content-Length" = 25;
+ "Content-Type" = "application/json; charset=utf-8";
+ Date = "Tue, 17 Jan 2017 21:22:38 GMT";
+ Server = "nginx/1.11.1";
+ } })
+ STATUS CODE: Optional(404)
+ HEADERS: Optional([AnyHashable("Content-Type"): application/json; charset=utf-8, AnyHashable("Content-Length"): 25, AnyHashable("Connection"): keep-alive, AnyHashable("Date"): Tue, 17 Jan 2017 21:22:38 GMT, AnyHashable("Server"): nginx/1.11.1])
+ RESULT: SUCCESS
+ JSON: []
+ Error: nil
+ requeset sentError
+ tFII do.onError : The operation couldn’t be completed. (Request Status Error error 404.)
+ tFII catchError : The operation couldn’t be completed. (Request Status Error error 404.)
+ tFII flatMap2
+ pBII doOnNext
+ pBII onNext : true
+ pBII doOnCompleted
+ pBII onCompleted
+ pBII onDisposed
+ request cancel
+ request cancel
+ request cancel
+ request cancel
+ tFII do.onDisponse
+ pBII doOnDispose
+*/
