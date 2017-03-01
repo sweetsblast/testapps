@@ -8,6 +8,7 @@
 
 import UIKit
 import UserNotifications
+import SwiftyDropbox
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -44,6 +45,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             }
         }
         
+        // DropBox setup
+        DropboxClientsManager.setupWithAppKey("7qdfypwqs8ballp")
+        
         return true
     }
     
@@ -78,6 +82,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         NSLog("application:%@",application.description)
         NSLog("url:%@", url.description)
         NSLog("options:%@", options)
+        
+        // DropBox のURLスキーム処理
+        if let authResult = DropboxClientsManager.handleRedirectURL(url) {
+            switch authResult {
+            case .success(let token):
+                print("Success! User is logged into Dropbox with token: \(token)")
+            case .cancel:
+                print("User canceld OAuth flow.")
+            case .error(let error, let description):
+                print("Error \(error): \(description)")
+            }
+        }
         
         return true
     }

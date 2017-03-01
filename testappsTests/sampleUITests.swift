@@ -1,14 +1,14 @@
 //
-//  testappsUITests.swift
-//  testappsUITests
+//  sampleUITests.swift
+//  testapps
 //
-//  Created by 志村晃央 on 2016/12/03.
-//  Copyright © 2016年 志村晃央. All rights reserved.
+//  Created by 志村晃央 on 2017/01/23.
+//  Copyright © 2017年 志村晃央. All rights reserved.
 //
 
 import XCTest
 
-class testappsUITests: XCTestCase {
+class sampleUITests: XCTestCase {
         
     override func setUp() {
         super.setUp()
@@ -31,19 +31,6 @@ class testappsUITests: XCTestCase {
     func testExample() {
         // Use recording to get started writing UI tests.
         // Use XCTAssert and related functions to verify your tests produce the correct results.
-        let app = XCUIApplication()
-        app.otherElements.containing(.staticText, identifier:"Label").children(matching: .button).matching(identifier: "Button").element(boundBy: 0).tap()
-        XCTAssertNotNil( app.alerts["その他エラー"],"アラートタイトル不一致")
-        XCTAssertNotNil( app.alerts["その他エラー"].buttons["OK"], "OKボタンタイトル不一致")
-        XCTAssertNotNil( app.alerts["その他エラー"].buttons["cancel"], "CANCELボタンタイトル不一致")
-    }
-    
-    func testEx2() {
-        
-        let app = XCUIApplication()
-        app.otherElements.containing(.staticText, identifier:"Label").children(matching: .button).matching(identifier: "Button").element(boundBy: 0).tap()
-        app.alerts["その他エラー"].buttons["OK"].tap()
-        XCTAssertNil(app.alerts, "アラートが消えない")
     }
     
 }
