@@ -1239,6 +1239,7 @@
 				C1DF0DC61E363E2B0021E650 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		C1DF0DD41E36B0FA0021E650 /* Build configuration list for PBXNativeTarget "testappsIIIUITests" */ = {
 			isa = XCConfigurationList;
@@ -1247,6 +1248,7 @@
 				C1DF0DD61E36B0FA0021E650 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
