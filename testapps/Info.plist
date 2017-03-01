@@ -2,6 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>dbapi-8-emm</string>
+		<string>dbapi-2</string>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -30,6 +35,7 @@
 			<string>jp.co.sweetsblast</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>db-7qdfypwqs8ballp</string>
 				<string>testapps</string>
 			</array>
 		</dict>

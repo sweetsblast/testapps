@@ -10,6 +10,10 @@ import UIKit
 import Alamofire
 import SwiftyJSON
 import RxSwift
+import SwiftyDropbox
+
+
+// bropbox app key 7qdfypwqs8ballp
 
 struct Sweetsblast<Base> {
     let base: Base
@@ -52,6 +56,61 @@ class MyReceiver {
     }
 }
 
+extension NSError {
+    var isErrorCode: Int{
+        return 0
+    }
+}
+
+extension UIAlertController {
+    static private func makeMessageFromError(_ error:NSError) -> (String,String,String,String) {
+        let domain = error.domain
+        let code = error.code
+        var res = ("","","","")
+        switch domain {
+        case "domain.api.login":
+            if code==200 {
+                res = ("ログイン不明","不明なログイン状態です","","OK")
+            }else{
+                res = ("ログイン失敗","ログインできませんでした","cancel","リトライ")
+            }
+        case "domain.api.logout":
+            res = ("ログアウト失敗","ログアウトに失敗しました","","OK")
+        default:
+            let id = error.isErrorCode
+            res = ("その他エラー","不明なエラーが発生しました(\(id))","","OK")
+        }
+        return res
+    }
+    
+    static func generate(error:NSError, cancelHandler: ((UIAlertAction) -> Swift.Void)? = nil, okHandler: ((UIAlertAction) -> Swift.Void)? = nil) -> UIAlertController {
+        let (title,message,cancelTitle,okTitle) = makeMessageFromError(error)
+        let alert = UIAlertController(title: title, message: message, preferredStyle: UIAlertControllerStyle.alert)
+        if cancelTitle != "" {
+            let cancelAction:UIAlertAction = UIAlertAction(title: cancelTitle, style: UIAlertActionStyle.cancel, handler:cancelHandler)
+            alert.addAction(cancelAction)
+        }
+        if okTitle != "" {
+            let okAction:UIAlertAction = UIAlertAction(title: okTitle, style: UIAlertActionStyle.default, handler:okHandler)
+            alert.addAction(okAction)
+        }
+        
+        return alert
+    }
+    /*
+        // 使い方
+        let alert = UIAlertController.generate(error: NSError(domain:"domain.api.login",code:0), cancelHandler: { (action) in
+            NSLog("Alert cancelHandler")
+        }, okHandler: { (action) in
+            NSLog("Alert okHandler")
+        })
+        present(alert, animated: true){
+            NSLog("Alert completion")
+        }
+     */
+}
+
+
 class ViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate{
 
     let receiver = MyReceiver()
@@ -65,6 +124,8 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
     @IBOutlet weak var btn1: UIButton!
 
     @IBOutlet weak var controlView: UICollectionView!
+    
+    var contentsdata :Array<String>? = nil
     
     // ルートViewを作成する
     override func loadView() {
@@ -173,6 +234,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
             print("testFunction : \($0)")
         }
 */
+        
         self.disposableII = testFunctionII()
             .do(onNext: { (bool) in
                 print("pBII doOnNext")
@@ -195,24 +257,66 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
             }, onDisposed: {
                 print("pBII onDisposed")
             })
+ 
+        SBI()
+        
+        let alert = UIAlertController.generate(error: NSError(domain:"domain.api.login2",code:200), cancelHandler: { (action) in
+            NSLog("Alert cancelHandler")
+        }, okHandler: { (action) in
+            NSLog("Alert okHandler")
+        })
+        present(alert, animated: true){ () in
+            NSLog("Alert completion")
+        }
+    }
+    
+    
+    // dropbox認証ボタン押下
+    @IBAction func dropboxAuthorize(_ sender: Any) {
+        NSLog("dropbox認証")
+        DropboxClientsManager.authorizeFromController( UIApplication.shared, controller: self, openURL:{ (url:URL) -> Void in
+            NSLog(#function)
+            UIApplication.shared.openURL(url)
+        })
+    }
+
+    // ファイル取得ボタン押下
+    @IBAction func pushGetFiles(_ sender: Any) {
+        NSLog(#function)
+        // クライアント取得
+        let client = DropboxClientsManager.authorizedClient
+        client?.files.listFolder(path: "").request.responseJSON(completionHandler: { (response) in
+            let json = SwiftyJSON.JSON(data: response.data!)
+            print(json.debugDescription)
+            self.contentsdata?.removeAll()
+            self.contentsdata = Array<String>()
+            for var filedata:SwiftyJSON.JSON in json["entries"].array! {
+                print( filedata[".tag"].string! + " : " + filedata["name"].string! )
+                self.contentsdata?.append(filedata[".tag"].string! + " : " + filedata["name"].string!)
+            }
+            
+            self.controlView.reloadData()
+        })
     }
     
     // UICollectionViewDataSource
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return 4
+        return 2
     }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         var number : Int = 0
         switch section {
         case 0:
-            number = 4
+            if  contentsdata != nil {
+                number = contentsdata!.count
+            } else {
+                number = 4
+            }
         case 1:
             number = 3
         case 2:
-            number = 2
-        case 3:
-            number = 1
+            number = 0
         default:
             number = 0
         }
@@ -222,18 +326,24 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         var cell : UICollectionViewCell
-        if(indexPath.row%2==0){
-            cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell1", for: indexPath)
-            cell.backgroundColor = UIColor.yellow
-            let label = cell.viewWithTag(1) as? UILabel
-            label?.text = "A" + String(indexPath.row)
+        if indexPath.section == 1 || contentsdata == nil {
+            if(indexPath.row%2==0){
+                cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell1", for: indexPath)
+                cell.backgroundColor = UIColor.yellow
+                let label = cell.viewWithTag(1) as? UILabel
+                label?.text = "A" + String(indexPath.row)
+            }else{
+                cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell2", for: indexPath)
+                cell.backgroundColor = UIColor.blue
+                let label = cell.viewWithTag(1) as? UILabel
+                // label?.text = "B" + String(indexPath.row)
+                label?.rx.base.text = "B" + String(indexPath.row)
+                label?.rx.base.textColor = UIColor.sb.sweetsblast
+            }
         }else{
-            cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell2", for: indexPath)
-            cell.backgroundColor = UIColor.blue
+            cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell1", for: indexPath)
             let label = cell.viewWithTag(1) as? UILabel
-            // label?.text = "B" + String(indexPath.row)
-            label?.rx.base.text = "B" + String(indexPath.row)
-            label?.rx.base.textColor = UIColor.sb.sweetsblast
+            label?.text = contentsdata?[indexPath.row]
         }
         
         return cell
@@ -278,7 +388,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         
         return MyClass().generate()
         .catchErrorJustReturn("AAA")
-        .flatMap({ (string) -> Observable<JSON> in
+        .flatMap({ (string) -> Observable<SwiftyJSON.JSON> in
             print("tFII flapMap")
             return MyClass().request(dateString: string)
         }).do(onNext: { (json) in
@@ -291,9 +401,9 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
             print("tFII do.onSubscribe")
         }, onDispose: { 
             print("tFII do.onDisponse")
-        }).catchError({ (error) -> Observable<JSON> in
+        }).catchError({ (error) -> Observable<SwiftyJSON.JSON> in
             print("tFII catchError : " + error.localizedDescription)
-            return Observable.just(JSON(NSData()))
+            return Observable.just(SwiftyJSON.JSON(NSData()))
         }).flatMap({ (json) -> Observable<Bool> in
             print("tFII flatMap2")
             return Observable<Bool>.just(true)
@@ -304,7 +414,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         
         disposable = MyClass().request(dateString:"2017/01/17")
             .catchErrorJustReturn(JSON(Data()))
-            .flatMap{ json -> Observable<JSON> in
+            .flatMap{ json -> Observable<SwiftyJSON.JSON> in
                 return MyClass().request(dateString:"2017/01/18")
             }
             .subscribe(
@@ -339,6 +449,140 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
             }
         )
     }
+
+    func SBI(){
+        let res1 = ResponseA(value: 0, str: "abc", error: nil)
+        let res2 = ResponseA(value: 0, str: "123", error: nil)
+        let res3 = ResponseA(value: 999, str: "123", error:nil)
+        SBIImp(res: res1)
+        SBIImp(res: res2)
+        SBIImp(res: res3)
+    }
+    
+    func SBIImp(res:ResponseA){
+        let disposable = RequestA().execute(response: res)
+            .catchError { (error) -> Observable<ResponseT> in
+                print("catchError1")
+                if let e = error as NSError? , e.code == 999 {
+                    // 特定エラーで再ログイン
+                    return RequestE().execute(response: ResponseE(res: "ABC", error: nil))
+                        .catchError({ (error) -> Observable<ResponseA> in
+                            print("catchError2")
+                            if let e = error as NSError? , e.code == 999 {
+                                // 特定エラーで初期化
+                                return RequestT().execute(response: ResponseT(value: 0, str: "")).flatMap({ (responseE) -> Observable<ResponseA> in
+                                    print("flatMap2")
+                                    return Observable.error(NSError(domain: "", code: 0, userInfo: nil))
+                                })
+                            }
+                            // 特定エラー以外はそのままエラーを流す
+                            return Observable.error(error)
+                        })
+                        .flatMap({ (responseA) -> Observable<ResponseT> in
+                            print("flatMap2")
+                            return RequestA().execute(response: responseA)
+                        })
+                }
+                // 特定エラー以外はそのままエラーを流す
+                return Observable.error(error)
+        }.subscribe(onNext: { (responseT) in
+            print("subscribeNext")
+        }, onError: { (error) in
+            print("subscribeError")
+        })
+    }
+}
+
+class ResponseA {
+    var value:Int = 0
+    var str:String = ""
+    var error:Error? = nil
+    
+    init( value:Int, str:String, error:NSError? ){
+        self.value = value
+        self.str = str
+        self.error = error
+    }
+}
+
+class ResponseE {
+    var res: String = ""
+    var error: NSError? = nil
+    
+    init( res:String, error:NSError?){
+        self.res = res
+        self.error = error
+    }
+}
+
+class ResponseT {
+    var value: Int = 0
+    var str: String = ""
+    
+    init( value:Int, str:String){
+        self.value = value
+        self.str = str
+    }
+}
+
+class RequestA {
+    func execute( response:ResponseA) -> Observable<ResponseT> {
+        return Observable<ResponseT>.create{ observer in
+            if response.str=="123" {
+                print("RA sendError")
+                observer.onError(NSError(domain: response.str, code: response.value, userInfo: ["info":response]))
+            }else{
+                print("RA sendNext")
+                observer.onNext(ResponseT(value:response.value, str:response.str))
+                print("RA sendCompleted")
+                observer.onCompleted()
+            }
+            
+            return Disposables.create{
+                print("RA cancel")
+            }
+        }
+    }
+}
+
+class RequestT {
+    func execute( response:ResponseT) -> Observable<ResponseE> {
+        return Observable<ResponseE>.create{ observer in
+            if response.value==5 {
+                print("RT sendError")
+                observer.onError(NSError(domain: response.str, code: response.value, userInfo: ["info":response]))
+            }else{
+                print("RT sendNext(,ABC)")
+                observer.onNext(ResponseE(res:response.str, error:NSError(domain: response.str, code: response.value, userInfo: ["info":response])))
+                print("RT sendCompleted")
+                observer.onCompleted()
+            }
+            
+            return Disposables.create{
+                print("requestT cancel")
+            }
+        }
+    }
+}
+
+class RequestE {
+    func execute( response:ResponseE) -> Observable<ResponseA> {
+        return Observable<ResponseA>.create{ observer in
+            if response.res=="ABC" {
+                print("RE sendError")
+                observer.onError(NSError(domain: response.res, code: 0, userInfo: ["info":response]))
+            }else{
+                print("RE sendNext")
+                observer.onNext(ResponseA(value:0, str:response.res,error:response.error))
+                print("RE sendCompleted")
+                observer.onCompleted()
+            }
+            
+            return Disposables.create{
+                print("RE cancel")
+            }
+        }
+    }
 }
 
 class MyClass {
@@ -365,21 +609,26 @@ class MyClass {
         }
     }
     
-    func request(dateString: String) -> Observable<JSON> {
+    func request(dateString: String) -> Observable<SwiftyJSON.JSON> {
         print("request : " + dateString)
-        return Observable<JSON>.create { observer in
+        return Observable<SwiftyJSON.JSON>.create { observer in
             self.request = Alamofire.request("http://api.jugemkey.jp/api/horoscope/free/" + dateString)
+            print("request in request = " + (self.request==nil ? "nil" : self.request.debugDescription))
             self.request?.responseJSON{ response in
+                print("responseJSON handler in")
                 let json = JSON(response.result.value ?? "")
                 print("REQUEST: \(response.request)")
                 print("RESPONSE: \(response.response)")
                 print("STATUS CODE: \(response.response?.statusCode)")
                 print("HEADERS: \(response.response?.allHeaderFields)")
                 print("RESULT: \(response.result)")
-                print("JSON: \(json.arrayValue)")
+                print("RESULT.VALUE: \((response.result.value ?? "").debugDescription)")
+                print("JSON: \(json.arrayValue.debugDescription)")
                 print("Error: " + response.result.error.debugDescription)
                 let ddd = json["horoscope"][dateString]
-                if ( (response.response?.statusCode ?? 999) != 200 ){
+                /*if response.error != nil {
+                    observer.onError(response.error!)
+                }else*/ if ( (response.response?.statusCode ?? 999) != 200 ){
                     print("requeset sentError")
                     observer.onError(NSError(domain: "Request Status Error", code: response.response?.statusCode ?? 999, userInfo: nil))
                 }else{
@@ -389,6 +638,7 @@ class MyClass {
 //                    observer.onCompleted()
                 }
             }
+            print("request end")
             
             return Disposables.create {
                 print("request cancel")

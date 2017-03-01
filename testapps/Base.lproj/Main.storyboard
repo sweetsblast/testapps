@@ -99,11 +99,27 @@
                                 </connections>
                             </collectionView>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="cgv-Me-ay6">
-                                <rect key="frame" x="329" y="617" width="46" height="30"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <rect key="frame" x="329" y="608" width="46" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                                 <state key="normal" title="Button"/>
                                 <connections>
                                     <action selector="pushButtonII:" destination="BYZ-38-t0r" eventType="touchUpInside" id="p6U-Eb-5FY"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="nD4-CD-KfH">
+                                <rect key="frame" x="264" y="637" width="111" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+                                <state key="normal" title="BropBox認証"/>
+                                <connections>
+                                    <action selector="dropboxAuthorize:" destination="BYZ-38-t0r" eventType="touchUpInside" id="PKV-qY-55s"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="uwl-Zq-FQT">
+                                <rect key="frame" x="148" y="637" width="108" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="ファイル取得"/>
+                                <connections>
+                                    <action selector="pushGetFiles:" destination="BYZ-38-t0r" eventType="touchUpInside" id="OAK-5v-3qA"/>
                                 </connections>
                             </button>
                         </subviews>
